@@ -1,0 +1,5 @@
+FROM kubesphere/edas:latest
+
+WORKDIR /home
+#拷贝交付件到对应的目录，交付件路径根据实际情况填写
+COPY master-data-service/target/*.jar /home/admin/app/

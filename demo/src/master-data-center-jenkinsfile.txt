@@ -1,0 +1,35 @@
+pipeline {
+    agent {
+      node {
+        label 'maven'
+        }
+    }
+    environment {
+        GITHUB_CREDENTIAL_ID = 'gitlab01'
+        REGISTRY = 'ks-harbor.supaur.top'
+        DOCKERHUB_NAMESPACE = """${sh(
+                      script: "printenv |grep JOB_URL |cut -d '/' -f 5 |awk '{print substr(\$0,1,length(\$0)-5)}'",
+                      returnStdout: true
+                 ).trim()}"""
+        GITHUB_ACCOUNT = 'sp0080'
+        APP_NAME = """${sh(
+                      script: 'printenv |grep JOB_NAME |cut -d "/" -f 2',
+                      returnStdout: true
+                 ).trim()}"""
+    }
+
+    stages {
+        stage ('Build') {
+            steps {
+                container ('maven') {
+                echo "${env.DOCKERHUB_NAMESPACE}"
+                sh 'mvn clean package -Dmaven.test.skip'
+                sh 'cd master-data-deliver && mvn clean package -Dmaven.test.skip && cd ..'
+                sh 'docker build -f dockerfile/mdm-web-dockerfile -t $REGISTRY/$DOCKERHUB_NAMESPACE/$APP_NAME:SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER .'
+                sh 'docker push  $REGISTRY/$DOCKERHUB_NAMESPACE/$APP_NAME:SNAPSHOT-$BRANCH_NAME-$BUILD_NUMBER'
+                    }
+                }
+            }
+        }
+    }
+}
